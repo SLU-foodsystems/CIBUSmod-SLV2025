@@ -40,9 +40,6 @@ def do_run(
         # Instatiate Regions
         regions = cm.Regions(
             par = cm.ParameterRetriever('Regions'),
-            settings = {
-                'max_land_use_from_scenario_x0' : True
-            }
         )
         
         # Instantiate DemandAndConversions
@@ -174,6 +171,11 @@ def do_run(
                 bl_ani.groupby(['species','breed','prod_system','region']).sum()
             regions.data_attr.get('x0_crops').loc[:] = \
                 bl_crp.reindex(regions.data_attr.get('x0_crops').index, fill_value=0)
+            if year != '1':
+                if year[-1] == '1':
+                    # Aim for more semi-natural pastures
+                    regions.data_attr.get('x0_crops').loc[['Semi-natural pastures']] *= 1.2
+                    regions.data_attr.get('x0_crops').loc[['Ley for grazing']] *= 0.8
         
         # Calculate food demand
         demand.calculate(verbose=True)
