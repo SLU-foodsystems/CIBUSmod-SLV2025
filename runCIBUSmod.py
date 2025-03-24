@@ -154,9 +154,13 @@ def do_run(
         if year != '0':
             while True:
                 try:
-                    # Get animal numbers in baseline
+                    # Get animal numbers in baseline (2016-2020)
                     bl_ani = session.get_attr('geo','x_ani', scn='SLV', years='0').iloc[0]
                     bl_crp = session.get_attr('geo','x_crops', scn='SLV', years='0').iloc[0]
+                    if year != '1':
+                        # Get animal numbers in baseline (2023)
+                        bl23_ani = session.get_attr('geo','x_ani', scn='SLV', years='1').iloc[0]
+                        bl23_crp = session.get_attr('geo','x_crops', scn='SLV', years='1').iloc[0]
                 except:
                     time.sleep(10)
                 else:
@@ -172,10 +176,12 @@ def do_run(
             regions.data_attr.get('x0_crops').loc[:] = \
                 bl_crp.reindex(regions.data_attr.get('x0_crops').index, fill_value=0)
             if year != '1':
-                if year[-1] == '1':
-                    # Aim for more semi-natural pastures
-                    regions.data_attr.get('x0_crops').loc[['Semi-natural pastures']] *= 1.2
-                    regions.data_attr.get('x0_crops').loc[['Ley for grazing']] *= 0.8
+                # Apply fallow factor
+                geodist.par.clear()
+                regions.data_attr.get('x0_crops').loc[['Fallow']] *= \
+                    geodist.par.get('fallow_factor', crop='Fallow')[0]
+                regions.data_attr.get('x0_crops').loc[['Ley not harvested']] *= \
+                    geodist.par.get('fallow_factor', crop='Ley not harvested')[0]
         
         # Calculate food demand
         demand.calculate(verbose=True)
@@ -222,10 +228,10 @@ def do_run(
             C8_crp.append(bl_crp.loc[['Semi-natural meadows', 'Semi-natural pastures, thin soils', 'Semi-natural pastures, wooded']])
             C8_rel.append('==')
 
-            # Constrain Fallow and Ley not harvested to 50% of baseline areas
-            C8_ani.append(None)
-            C8_crp.append(bl_crp.loc[['Fallow', 'Ley not harvested']] * 0.5)
-            C8_rel.append('>=')
+            if year != '1' and year[-1] == '1':
+                C8_ani.append(None)
+                C8_crp.append(bl23_crp.loc[['Semi-natural pastures']])
+                C8_rel.append('>=')
             
             kwargs.update({
                 'use_cons' : [1,2,3,4,5,6,7,8],
